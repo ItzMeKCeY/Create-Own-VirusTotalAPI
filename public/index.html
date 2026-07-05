@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>ViralTotal — File & URL Threat Scanner</title>
+<meta name="description" content="Scan URLs, domains, IPs, file hashes, and files for threats. Powered by VirusTotal. Built by Team Akira.">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="ViralTotal — File & URL Threat Scanner">
+<meta property="og:description" content="Scan URLs, domains, IPs, file hashes, and files for threats. Free API for developers and bots.">
+<meta property="og:image" content="https://dummyimage.com/1200x630/0a0d0a/9fef3f.png&text=ViralTotal">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #0a0d0a;
+    --bg-raised: #10140f;
+    --line: #1d251a;
+    --lime: #9fef3f;
+    --lime-dim: #6ba82a;
+    --amber: #f5c05a;
+    --red: #ff5d5d;
+    --text: #e9f2e2;
+    --text-dim: #7b8a72;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(159,239,63,0.08), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* scanline texture */
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background: repeating-linear-gradient(
+      0deg, rgba(159,239,63,0.015) 0px, rgba(159,239,63,0.015) 1px,
+      transparent 1px, transparent 3px
+    );
+    pointer-events:none;
+    z-index: 1;
+  }
+
+  .wrap{
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 20px 100px;
+    position: relative;
+    z-index: 2;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom: 56px;
+    gap: 16px;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.02em;
+  }
+  .brand .dot{
+    width:10px; height:10px; border-radius:50%;
+    background: var(--lime);
+    box-shadow: 0 0 12px var(--lime);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.4; }
+  }
+  .brand span.total{ color: var(--text-dim); font-weight:500; }
+
+  .team-tag{
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    border: 1px solid var(--line);
+    padding: 5px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+  }
+
+  .hero h1{
+    font-family: var(--mono);
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+  .hero h1 .accent{ color: var(--lime); }
+  .hero p{
+    color: var(--text-dim);
+    font-size: 1rem;
+    max-width: 52ch;
+    margin-bottom: 36px;
+  }
+
+  /* Tabs */
+  .tabs{
+    display:flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .tab{
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    padding: 10px 16px;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .tab:hover{ color: var(--text); }
+  .tab.active{
+    color: var(--lime);
+    border-bottom-color: var(--lime);
+  }
+
+  .panel{ display:none; }
+  .panel.active{ display:block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  .field-label{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display:block;
+  }
+
+  input[type="text"], input[type="file"]{
+    width: 100%;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    padding: 14px 16px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="text"]:focus{
+    border-color: var(--lime-dim);
+    box-shadow: 0 0 0 3px rgba(159,239,63,0.12);
+  }
+  input[type="file"]{ padding: 12px; cursor: pointer; }
+
+  .scan-btn{
+    margin-top: 18px;
+    width: 100%;
+    background: var(--lime);
+    color: #0a0d0a;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.88rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: none;
+    padding: 15px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.15s;
+  }
+  .scan-btn:hover{ box-shadow: 0 0 24px rgba(159,239,63,0.3); }
+  .scan-btn:active{ transform: scale(0.98); }
+  .scan-btn:disabled{ opacity:0.5; cursor:not-allowed; box-shadow:none; }
+
+  /* Result console */
+  .console{
+    margin-top: 28px;
+    background: #070907;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    display: none;
+  }
+  .console.show{ display:block; animation: fadeIn 0.3s ease; }
+  .console-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  .verdict-badge{
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .verdict-clean{ background: rgba(159,239,63,0.15); color: var(--lime); }
+  .verdict-suspicious{ background: rgba(245,192,90,0.15); color: var(--amber); }
+  .verdict-malicious{ background: rgba(255,93,93,0.15); color: var(--red); }
+
+  .console-body{ padding: 18px; }
+
+  .stat-row{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat{
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 10px;
+    text-align:center;
+  }
+  .stat .n{ font-family: var(--mono); font-weight:800; font-size:1.3rem; }
+  .stat .l{ font-size: 0.65rem; color: var(--text-dim); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px; }
+  .stat.malicious .n{ color: var(--red); }
+  .stat.suspicious .n{ color: var(--amber); }
+  .stat.harmless .n{ color: var(--lime); }
+
+  pre.raw{
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px;
+  }
+
+  .vt-link{
+    display:inline-block;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--lime);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--lime-dim);
+  }
+
+  .loading{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    padding: 20px 0;
+  }
+  .spinner{
+    width: 14px; height:14px;
+    border: 2px solid var(--line);
+    border-top-color: var(--lime);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .error-box{
+    background: rgba(255,93,93,0.08);
+    border: 1px solid rgba(255,93,93,0.3);
+    color: var(--red);
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    padding: 14px 16px;
+    border-radius: 6px;
+    margin-top: 18px;
+  }
+
+  /* Docs section */
+  .docs{
+    margin-top: 72px;
+    border-top: 1px solid var(--line);
+    padding-top: 40px;
+  }
+  .docs h2{
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    margin-bottom: 18px;
+    color: var(--lime);
+  }
+  .endpoint{
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .endpoint .method{
+    display:inline-block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight:700;
+    color: #0a0d0a;
+    background: var(--lime);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+  .endpoint code.path{
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--text);
+  }
+  .endpoint pre{
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    color: var(--text-dim);
+    background: #070907;
+    border-radius: 6px;
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  footer{
+    margin-top: 60px;
+    text-align:center;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  footer .lime{ color: var(--lime); }
+
+  @media (max-width: 520px){
+    .stat-row{ grid-template-columns: repeat(2,1fr); }
+    header{ flex-direction:column; align-items:flex-start; gap:10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand"><span class="dot"></span>Viral<span class="total">Total</span></div>
+    <div class="team-tag">TEAM AKIRA</div>
+  </header>
+
+  <div class="hero">
+    <h1>Scan first. <span class="accent">Trust after.</span></h1>
+    <p>Check URLs, domains, IP addresses, file hashes, or upload a file directly — powered by VirusTotal's multi-engine scan network. Built for bots, built for devs.</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="url">URL</button>
+    <button class="tab" data-tab="domain">Domain</button>
+    <button class="tab" data-tab="ip">IP</button>
+    <button class="tab" data-tab="hash">File Hash</button>
+    <button class="tab" data-tab="file">Upload File</button>
+  </div>
+
+  <div class="panel active" id="panel-url">
+    <label class="field-label">Target URL</label>
+    <input type="text" id="input-url" placeholder="https://example.com/suspicious-link">
+    <button class="scan-btn" onclick="runScan('url')">Run Scan</button>
+  </div>
+
+  <div class="panel" id="panel-domain">
+    <label class="field-label">Domain</label>
+    <input type="text" id="input-domain" placeholder="example.com">
+    <button class="scan-btn" onclick="runScan('domain')">Run Scan</button>
+  </div>
+
+  <div class="panel" id="panel-ip">
+    <label class="field-label">IP Address</label>
+    <input type="text" id="input-ip" placeholder="8.8.8.8">
+    <button class="scan-btn" onclick="runScan('ip')">Run Scan</button>
+  </div>
+
+  <div class="panel" id="panel-hash">
+    <label class="field-label">File Hash (MD5 / SHA1 / SHA256)</label>
+    <input type="text" id="input-hash" placeholder="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855">
+    <button class="scan-btn" onclick="runScan('file_hash')">Run Scan</button>
+  </div>
+
+  <div class="panel" id="panel-file">
+    <label class="field-label">Choose File (max 32MB)</label>
+    <input type="file" id="input-file">
+    <button class="scan-btn" onclick="runFileScan()">Upload & Scan</button>
+  </div>
+
+  <div class="console" id="console">
+    <div class="console-head">
+      <span id="console-title">RESULT</span>
+      <span id="verdict-badge" class="verdict-badge verdict-clean">—</span>
+    </div>
+    <div class="console-body" id="console-body"></div>
+  </div>
+
+  <div class="docs">
+    <h2>// API Reference</h2>
+
+    <div class="endpoint">
+      <div><span class="method">POST/GET</span><code class="path">/.netlify/functions/scan</code></div>
+      <pre>{
+  "type": "url",        // url | domain | ip | file_hash
+  "target": "https://example.com"
+}</pre>
+    </div>
+
+    <div class="endpoint">
+      <div><span class="method">POST</span><code class="path">/.netlify/functions/scan-file</code></div>
+      <pre>{
+  "file_name": "app.apk",
+  "file_base64": "&lt;base64 encoded file&gt;"
+}</pre>
+    </div>
+
+    <div class="endpoint">
+      <div style="margin-bottom:4px; color:var(--text-dim); font-size:0.8rem;">Sample response</div>
+      <pre>{
+  "success": true,
+  "type": "url",
+  "target": "https://example.com",
+  "result": {
+    "malicious": 0,
+    "suspicious": 0,
+    "harmless": 68,
+    "verdict": "clean",
+    "vt_link": "https://www.virustotal.com/gui/url/..."
+  },
+  "developer": "K CeY | DevRabbitZz",
+  "team": "Team Akira",
+  "api": "ViralTotal"
+}</pre>
+    </div>
+  </div>
+
+  <footer>
+    built by <span class="lime">K CeY | DevRabbitZz</span> — Team Akira &middot; powered by VirusTotal
+  </footer>
+
+</div>
+
+<script>
+  const BASE = ""; // same-origin on Netlify
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+      document.getElementById("console").classList.remove("show");
+    });
+  });
+
+  function showLoading(){
+    const c = document.getElementById("console");
+    c.classList.add("show");
+    document.getElementById("console-title").textContent = "SCANNING...";
+    document.getElementById("verdict-badge").style.display = "none";
+    document.getElementById("console-body").innerHTML =
+      '<div class="loading"><div class="spinner"></div> Talking to VirusTotal engines...</div>';
+  }
+
+  function showError(msg){
+    document.getElementById("console-title").textContent = "ERROR";
+    document.getElementById("verdict-badge").style.display = "none";
+    document.getElementById("console-body").innerHTML =
+      '<div class="error-box">' + escapeHtml(msg) + '</div>';
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function renderResult(data){
+    const badge = document.getElementById("verdict-badge");
+    badge.style.display = "inline-block";
+    document.getElementById("console-title").textContent = "RESULT";
+
+    if(!data.success){
+      showError(data.error || "Unknown error.");
+      return;
+    }
+
+    const r = data.result || data;
+    const verdict = r.verdict || "clean";
+    badge.className = "verdict-badge verdict-" + verdict;
+    badge.textContent = verdict;
+
+    const statRow = `
+      <div class="stat-row">
+        <div class="stat malicious"><div class="n">${r.malicious ?? 0}</div><div class="l">Malicious</div></div>
+        <div class="stat suspicious"><div class="n">${r.suspicious ?? 0}</div><div class="l">Suspicious</div></div>
+        <div class="stat harmless"><div class="n">${r.harmless ?? 0}</div><div class="l">Harmless</div></div>
+        <div class="stat"><div class="n">${r.total_engines ?? 0}</div><div class="l">Engines</div></div>
+      </div>
+    `;
+
+    const link = r.vt_link ? `<a class="vt-link" href="${r.vt_link}" target="_blank">View full report on VirusTotal →</a>` : "";
+
+    document.getElementById("console-body").innerHTML =
+      statRow +
+      '<pre class="raw">' + escapeHtml(JSON.stringify(data, null, 2)) + '</pre>' +
+      link;
+  }
+
+  async function runScan(type){
+    const inputMap = { url: "input-url", domain: "input-domain", ip: "input-ip", file_hash: "input-hash" };
+    const el = document.getElementById(inputMap[type]);
+    const target = el.value.trim();
+    if(!target){ el.focus(); return; }
+
+    showLoading();
+    try{
+      const res = await fetch(BASE + "/.netlify/functions/scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, target })
+      });
+      const data = await res.json();
+      renderResult(data);
+    }catch(e){
+      showError("Network error: " + e.message);
+    }
+  }
+
+  async function runFileScan(){
+    const fileInput = document.getElementById("input-file");
+    const file = fileInput.files[0];
+    if(!file){ fileInput.focus(); return; }
+
+    showLoading();
+    try{
+      const base64 = await fileToBase64(file);
+      const res = await fetch(BASE + "/.netlify/functions/scan-file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_name: file.name, file_base64: base64 })
+      });
+      const data = await res.json();
+      renderResult(data);
+    }catch(e){
+      showError("Upload error: " + e.message);
+    }
+  }
+
+  function fileToBase64(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "viraltotal-api",
+  "version": "1.0.0",
+  "description": "ViralTotal - URL/File/Domain/IP threat scanner API powered by VirusTotal. Built by K CeY | DevRabbitZz, Team Akira.",
+  "author": "K CeY | DevRabbitZz (Team Akira)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
