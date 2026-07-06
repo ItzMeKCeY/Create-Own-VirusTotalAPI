@@ -51,6 +51,8 @@ Analyzes web entities or standard MD5/SHA-256 file hashes.
 * **Endpoint:** `/.netlify/functions/scan`
 * **Methods Supported:** `GET` or `POST`
 
+GET /.netlify/functions/scan?type=url&target=[https://example.com](https://example.com)
+
 #### POST Request Example
 ```json
 // Headers: Content-Type: application/json
