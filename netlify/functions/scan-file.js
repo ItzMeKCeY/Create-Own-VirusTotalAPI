@@ -1,4 +1,4 @@
-// ViralTotal API - File Upload Scanner
+// VirusTotal API - File Upload Scanner
 // developer: K CeY | DevRabbitZz | team: Team Akira
 // Accepts a base64-encoded file (JSON body) and submits it to VirusTotal.
 // Max ~32MB via the public API's direct /files endpoint.
@@ -9,7 +9,7 @@ function meta() {
   return {
     developer: "K CeY | DevRabbitZz",
     team: "Team Akira",
-    api: "ViralTotal",
+    api: "VirusTotal",
     poweredBy: "VirusTotal Public API v3"
   };
 }

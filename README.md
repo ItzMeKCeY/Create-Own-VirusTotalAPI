@@ -1,4 +1,4 @@
-# 🛡️ ViralTotal API
+# 🛡️ VirusTotal API
 
 A powerful, serverless threat-scanning API and terminal-style web interface powered by the **VirusTotal Public API v3**. This project allows developers to host their own security scanning service to analyze URLs, domains, IP addresses, file hashes, and direct file uploads.
 

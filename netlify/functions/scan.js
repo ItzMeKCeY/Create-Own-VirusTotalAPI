@@ -1,4 +1,4 @@
-// ViralTotal API - powered by VirusTotal
+// VirusTotal API - powered by VirusTotal
 // developer: K CeY | DevRabbitZz | team: Team Akira
 
 const VT_BASE = "https://www.virustotal.com/api/v3";
@@ -7,7 +7,7 @@ function meta() {
   return {
     developer: "K CeY | DevRabbitZz",
     team: "Team Akira",
-    api: "ViralTotal",
+    api: "VirusTotal",
     poweredBy: "VirusTotal Public API v3"
   };
 }
